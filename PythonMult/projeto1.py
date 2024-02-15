@@ -17,8 +17,8 @@ def encoder(img):
     #Padding caso dimensão não seja multiplo de 32x32 (copia a ultima linha/coluna para preencher o espaço em falta)
     #4.1
     nl, nc= R.shape #n linhas e colunas
-    nl_pad= 32- nl%32
-    nc_pad= 32- nc%32
+    nl_pad= 32-(nl%32)
+    nc_pad= 32-(nc%32)
     R= np.pad(R, ((0, nl_pad), (0, nc_pad)), mode= 'edge') #edge= copia a ultima linha/coluna
     G= np.pad(G, ((0, nl_pad), (0, nc_pad)), mode= 'edge')
     B= np.pad(B, ((0, nl_pad), (0, nc_pad)), mode= 'edge')
@@ -36,8 +36,11 @@ def joinRGB(R, G, B):
 
     return imgRec
 
-def decoder(R,G,B):
+def decoder(R,G,B, tamOriginal):
     imgRec= joinRGB(R, G, B)
+    #4.2
+    #remover padding
+    imgRec= imgRec[:tamOriginal[0], :tamOriginal[1], :]
     return imgRec
 
 def showImg(img, cmap= None, caption= ""):
@@ -81,11 +84,10 @@ def main():
 
     #decoder
     #recebe rgb do encoder acima e calcula a imagem reconstruida
-    imgRec= decoder(R, G, B)
+    imgRec= decoder(R, G, B, img.shape)
     showImg(imgRec, caption= "Imagem reconstruida: " + fname)
     plt.savefig("imagens/" + fname + "_rec.png")
 
-    #4 padding
     plt.show()
 
 if __name__ == "__main__":
