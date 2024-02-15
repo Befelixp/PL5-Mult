@@ -8,8 +8,8 @@ import numpy as np #decoder
 
 def splitRGB(img): #separar matrizes
     R = img[:, :, 0]
-    G = img[:, :, 0]
-    B = img[:, :, 0]
+    G = img[:, :, 1]
+    B = img[:, :, 2]
     return R, G, B
 
 def encoder(img):
