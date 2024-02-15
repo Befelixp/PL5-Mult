@@ -46,7 +46,7 @@ def main():
     #3.1
     #Ler imagens
     fname= "airport.bmp"
-    img= plt.imread("img/" + fname)
+    img= plt.imread("imagens/" + fname)
 
     #debug print:
     #print(img.shape) #tamanho da imagem
