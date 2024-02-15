@@ -46,13 +46,13 @@ def main():
     #3.1
     #Ler imagens
     fname= "airport.bmp"
-    img= plt.imread("img/" + fname)
+    img= plt.imread("imagens/" + fname)
 
     #debug print:
-    #print(img.shape) #tamanho da imagem
+    print(img.shape) #tamanho da imagem
     #print(img.dtype) #tipo da imagem
 
-    showImg(img, "Imagem original: " + fname)
+    showImg(img, caption="Imagem original: " + fname)
 
     #3.2 colormap
     cm_red= clr.LinearSegmentedColormap.from_list("red", [(0,0,0), (1,0,0)], N= 256) #color, (range de cores rgb do vermelho)
@@ -64,14 +64,19 @@ def main():
     #encoder
     R, G, B= encoder(img)
     showImg(R, cmap= cm_red, caption= "Red")
+    plt.savefig("imagens/" + fname + "_red.png") #guardar imagens
     showImg(G, cmap= cm_green, caption= "Green")
+    plt.savefig("imagens/" + fname + "_green.png") #guardar imagens
     showImg(B, cmap=cm_blue, caption="Blue")
+    plt.savefig("imagens/" + fname + "_blue.png") #guardar imagens
     #showImg(?, cmap=cm_grey, caption="Grey") fzr so dps do yCbCr
 
     #decoder
     #recebe rgb do encoder acima e calcula a imagem reconstruida
     imgRec= decoder(R, G, B)
     showImg(imgRec, caption= "Imagem reconstruida: " + fname)
+    plt.savefig("imagens/" + fname + "_rec.png")
+    x = input("Terminar programa? (s/n) ")
 
     #4 padding
 
