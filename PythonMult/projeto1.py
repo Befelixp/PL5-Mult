@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt #3.1
 import matplotlib.colors as clr #3.2
 import numpy as np #decoder
+import cv2 
+import scipy.fftpack as fft
 
 #-----Ex.2-----
 
@@ -67,6 +69,29 @@ def yCbCr_to_RGB(Y, Cb, Cr):
     G= np.clip((Y - (0.299*R) - (0.114*B))/0.587, 0, 255)
     return R, G, B
 
+def downsampling(Y,Cb, Cr, n):
+    if n == 444:
+        return Y, Cb, Cr
+    if n == 422:
+        Cb_d = cv2.resize(Cb,None, fx=0.5, fy=1, interpolation=cv2.INTER_LINEAR)
+        Cr_d = cv2.resize(Cr,None, fx=0.5, fy=1, interpolation=cv2.INTER_LINEAR)
+        return Y,Cb_d, Cr_d
+    if n == 420:
+        Cb_d = cv2.resize(Cb,None, fx=0.5, fy=0.5, interpolation=cv2.INTER_LINEAR)
+        Cr_d = cv2.resize(Cr,None, fx=0.5, fy=0.5, interpolation=cv2.INTER_LINEAR)
+        return Y,Cb_d, Cr_d
+    return print("valor de n errado!")
+
+def upsampling(Y,Cb, Cr, n):
+    if n == 422:
+        Cb_u = cv2.resize(Cb,None, fx=2, fy=1, interpolation=cv2.INTER_LINEAR)
+        Cr_u = cv2.resize(Cr,None, fx=2, fy=1, interpolation=cv2.INTER_LINEAR)
+        return Y,Cb_u, Cr_u
+    if n == 420:
+        Cb_u = cv2.resize(Cb,None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
+        Cr_u = cv2.resize(Cr,None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
+        return Y,Cb_u, Cr_u
+    return print("valor de n errado!")
 
 
 #Main
@@ -94,18 +119,18 @@ def main():
     print("Imagem [0][0]: ", img[0][0])
     R, G, B= encoder(img)
     showImg(R, cmap= cm_red, caption= "Red")
-    plt.savefig("imagens/" + fname + "_red.png") #guardar imagens
+    #plt.savefig("imagens/" + fname + "_red.png") #guardar imagens
     showImg(G, cmap= cm_green, caption= "Green")
-    plt.savefig("imagens/" + fname + "_green.png") #guardar imagens
+    #plt.savefig("imagens/" + fname + "_green.png") #guardar imagens
     showImg(B, cmap=cm_blue, caption="Blue")
-    plt.savefig("imagens/" + fname + "_blue.png") #guardar imagens
+    #plt.savefig("imagens/" + fname + "_blue.png") #guardar imagens
     #showImg(?, cmap=cm_grey, caption="Grey") fzr so dps do yCbCr
 
     #decoder
     #recebe rgb do encoder acima e calcula a imagem reconstruida
     imgRec= decoder(R, G, B, img.shape)
     showImg(imgRec, caption= "Imagem reconstruida: " + fname)
-    plt.savefig("imagens/" + fname + "_rec.png")
+    #plt.savefig("imagens/" + fname + "_rec.png")
 
     Y , Cb, Cr= RGB_to_yCbCr(R, G, B)
     showImg(Y, cmap= cm_grey, caption= "Y")
@@ -116,6 +141,18 @@ def main():
     imgRec= decoder(R, G, B, img.shape)
     showImg(imgRec, caption= "Imagem reconstruida de YCbCr: " + fname)
     print("Imagem reconstruida YCbCr [0][0]: ", imgRec[0][0])
+    
+    # -----Ex.6-----
+    Y,Cb_d, Cr_d = downsampling(Y,Cb, Cr, 420)
+    showImg(Cb_d, cmap= cm_grey, caption= "Cb downsampled")
+    showImg(Cr_d, cmap= cm_grey, caption= "Cr downsampled")
+    print("Cb downsampled size: ", Cb_d.shape)
+    print("Cr downsampled size: ", Cr_d.shape)
+    Y,Cb_u, Cr_u = upsampling(Y,Cb_d, Cr_d, 420)
+    showImg(Cb_u, cmap= cm_grey, caption= "Cb upsampled")
+    showImg(Cr_u, cmap= cm_grey, caption= "Cr upsampled")
+    print("Cb upsampled size: ", Cb_u.shape)
+    print("Cr upsampled size: ", Cr_u.shape)
     plt.show()
 
 if __name__ == "__main__":
