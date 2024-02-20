@@ -69,6 +69,7 @@ def yCbCr_to_RGB(Y, Cb, Cr):
     G= np.clip((Y - (0.299*R) - (0.114*B))/0.587, 0, 255)
     return R, G, B
 
+# ---Ex 6---
 def downsampling(Y,Cb, Cr, n):
     if n == 444:
         return Y, Cb, Cr
@@ -92,6 +93,26 @@ def upsampling(Y,Cb, Cr, n):
         Cr_u = cv2.resize(Cr,None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
         return Y,Cb_u, Cr_u
     return print("valor de n errado!")
+
+# ---- Ex 7 ----
+
+#7.1
+def dct(Y, Cb, Cr):
+    Y_dct = fft.dct(fft.dct(Y, axis=0, norm='ortho'), axis=1, norm='ortho')
+    Cb_dct = fft.dct(fft.dct(Cb, axis=0, norm='ortho'), axis=1, norm='ortho')
+    Cr_dct = fft.dct(fft.dct(Cr, axis=0, norm='ortho'), axis=1, norm='ortho')
+    return Y_dct, Cb_dct, Cr_dct
+def idct(Y_dct, Cb_dct, Cr_dct):
+    Y = fft.idct(fft.idct(Y_dct, axis=0, norm='ortho'), axis=1, norm='ortho')
+    Cb = fft.idct(fft.idct(Cb_dct, axis=0, norm='ortho'), axis=1, norm='ortho')
+    Cr = fft.idct(fft.idct(Cr_dct, axis=0, norm='ortho'), axis=1, norm='ortho')
+    return Y, Cb, Cr
+#ortho = normalização
+#axis=0 -> aplicar a dct/idct a cada linha
+#axis=1 -> aplicar a dct/idct a cada coluna
+#chama a função dct duas vezes para aplicar a dct a cada linha e coluna
+
+#7.2
 
 
 #Main
