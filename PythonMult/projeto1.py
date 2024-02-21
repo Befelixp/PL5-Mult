@@ -96,17 +96,22 @@ def upsampling(Y,Cb, Cr, n):
 
 # ---- Ex 7 ----
 
-#7.1
+#7.1.1
 def dct(Y, Cb, Cr):
     Y_dct = fft.dct(fft.dct(Y, axis=0, norm='ortho'), axis=1, norm='ortho')
     Cb_dct = fft.dct(fft.dct(Cb, axis=0, norm='ortho'), axis=1, norm='ortho')
     Cr_dct = fft.dct(fft.dct(Cr, axis=0, norm='ortho'), axis=1, norm='ortho')
     return Y_dct, Cb_dct, Cr_dct
+#7.1.2
 def idct(Y_dct, Cb_dct, Cr_dct):
     Y = fft.idct(fft.idct(Y_dct, axis=0, norm='ortho'), axis=1, norm='ortho')
     Cb = fft.idct(fft.idct(Cb_dct, axis=0, norm='ortho'), axis=1, norm='ortho')
     Cr = fft.idct(fft.idct(Cr_dct, axis=0, norm='ortho'), axis=1, norm='ortho')
     return Y, Cb, Cr
+
+
+
+
 #ortho = normalização
 #axis=0 -> aplicar a dct/idct a cada linha
 #axis=1 -> aplicar a dct/idct a cada coluna
@@ -164,7 +169,7 @@ def main():
     print("Imagem reconstruida YCbCr [0][0]: ", imgRec[0][0])
     
     # -----Ex.6-----
-    Y,Cb_d, Cr_d = downsampling(Y,Cb, Cr, 420)
+    Y_d,Cb_d, Cr_d = downsampling(Y,Cb, Cr, 420)
     showImg(Cb_d, cmap= cm_grey, caption= "Cb downsampled")
     showImg(Cr_d, cmap= cm_grey, caption= "Cr downsampled")
     print("Cb downsampled size: ", Cb_d.shape)
@@ -174,6 +179,18 @@ def main():
     showImg(Cr_u, cmap= cm_grey, caption= "Cr upsampled")
     print("Cb upsampled size: ", Cb_u.shape)
     print("Cr upsampled size: ", Cr_u.shape)
+
+    # -----Ex.7-----
+    Y_dct, Cb_dct, Cr_dct = dct(Y, Cb, Cr)
+    #7.1.3
+    showImg(np.log(abs(Y_dct) + 0.0001), cmap= cm_grey, caption= "Y DCT")
+    showImg(np.log(abs(Cb_dct) + 0.0001), cmap= cm_grey, caption= "Cb DCT")
+    showImg(np.log(abs(Cr_dct) + 0.0001), cmap= cm_grey, caption= "Cr DCT")
+    #7.1.4
+    Y_idct, Cb_idct, Cr_idct = idct(Y_dct, Cb_dct, Cr_dct)
+    print("[Y_d, Cb_d, Cr_d]", Y_d[0][0], Cb_d[0][0], Cr_d[0][0])
+    print("[Y_idct, Cb_idct, Cr_idct]", Y_idct[0][0], Cb_idct[0][0], Cr_idct[0][0])
+
     plt.show()
 
 if __name__ == "__main__":
