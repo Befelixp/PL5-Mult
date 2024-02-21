@@ -74,12 +74,12 @@ def downsampling(Y,Cb, Cr, n):
     if n == 444:
         return Y, Cb, Cr
     if n == 422:
-        Cb_d = cv2.resize(Cb,None, fx=0.5, fy=1, interpolation=cv2.INTER_LINEAR)
-        Cr_d = cv2.resize(Cr,None, fx=0.5, fy=1, interpolation=cv2.INTER_LINEAR)
+        Cb_d = cv2.resize(Cb, None, fx=0.5, fy=1, interpolation=cv2.INTER_LINEAR)
+        Cr_d = cv2.resize(Cr, None, fx=0.5, fy=1, interpolation=cv2.INTER_LINEAR)
         return Y,Cb_d, Cr_d
     if n == 420:
-        Cb_d = cv2.resize(Cb,None, fx=0.5, fy=0.5, interpolation=cv2.INTER_LINEAR)
-        Cr_d = cv2.resize(Cr,None, fx=0.5, fy=0.5, interpolation=cv2.INTER_LINEAR)
+        Cb_d = cv2.resize(Cb, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_LINEAR)
+        Cr_d = cv2.resize(Cr, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_LINEAR)
         return Y,Cb_d, Cr_d
     return print("valor de n errado!")
 
@@ -102,6 +102,8 @@ def dct(Y, Cb, Cr):
     Cb_dct = fft.dct(fft.dct(Cb, axis=0, norm='ortho'), axis=1, norm='ortho')
     Cr_dct = fft.dct(fft.dct(Cr, axis=0, norm='ortho'), axis=1, norm='ortho')
     return Y_dct, Cb_dct, Cr_dct
+
+
 #7.1.2
 def idct(Y_dct, Cb_dct, Cr_dct):
     Y = fft.idct(fft.idct(Y_dct, axis=0, norm='ortho'), axis=1, norm='ortho')
@@ -118,6 +120,37 @@ def idct(Y_dct, Cb_dct, Cr_dct):
 #chama a função dct duas vezes para aplicar a dct a cada linha e coluna
 
 #7.2
+
+#7.2.1
+#calcular a DCT em blocos BSxBS
+def dctBlocks(Y, Cb, Cr, BS):
+    Y_dct = np.zeros(Y.shape)
+    Cb_dct = np.zeros(Cb.shape)
+    Cr_dct = np.zeros(Cr.shape)
+    for i in range(0, Y.shape[0], BS):
+        for j in range(0, Y.shape[1], BS):
+            Y_dct[i:i+BS, j:j+BS] = fft.dct(fft.dct(Y[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+    #outro ciclo, pois após o downsampling, dimensão de Cb e Cr podem ser diferentes de Y
+    for i in range(0, Cb.shape[0], BS):
+        for j in range(0, Cb.shape[1], BS):
+            Cb_dct[i:i+BS, j:j+BS] = fft.dct(fft.dct(Cb[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+            Cr_dct[i:i+BS, j:j+BS] = fft.dct(fft.dct(Cr[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+    return Y_dct, Cb_dct, Cr_dct
+
+#7.2.2
+#calcular a DCT inversa em blocos BSxBS
+def idctBlocks(Y, Cb, Cr, BS):
+    Y_dct = np.zeros(Y.shape)
+    Cb_dct = np.zeros(Cb.shape)
+    Cr_dct = np.zeros(Cr.shape)
+    for i in range(0, Y.shape[0], BS):
+        for j in range(0, Y.shape[1], BS):
+            Y_dct[i:i+BS, j:j+BS] = fft.idct(fft.idct(Y[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+    for i in range(0, Cb.shape[0], BS):
+        for j in range(0, Cb.shape[1], BS):
+            Cb_dct[i:i+BS, j:j+BS] = fft.idct(fft.idct(Cb[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+            Cr_dct[i:i+BS, j:j+BS] = fft.idct(fft.idct(Cr[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+    return Y_dct, Cb_dct, Cr_dct 
 
 
 #Main
@@ -169,19 +202,19 @@ def main():
     print("Imagem reconstruida YCbCr [0][0]: ", imgRec[0][0])
     
     # -----Ex.6-----
-    Y_d,Cb_d, Cr_d = downsampling(Y,Cb, Cr, 420)
+    Y_d,Cb_d, Cr_d = downsampling(Y,Cb, Cr, 422)
     showImg(Cb_d, cmap= cm_grey, caption= "Cb downsampled")
     showImg(Cr_d, cmap= cm_grey, caption= "Cr downsampled")
     print("Cb downsampled size: ", Cb_d.shape)
     print("Cr downsampled size: ", Cr_d.shape)
-    Y,Cb_u, Cr_u = upsampling(Y,Cb_d, Cr_d, 420)
+    Y_u,Cb_u, Cr_u = upsampling(Y_d,Cb_d, Cr_d, 422)
     showImg(Cb_u, cmap= cm_grey, caption= "Cb upsampled")
     showImg(Cr_u, cmap= cm_grey, caption= "Cr upsampled")
     print("Cb upsampled size: ", Cb_u.shape)
     print("Cr upsampled size: ", Cr_u.shape)
 
     # -----Ex.7-----
-    Y_dct, Cb_dct, Cr_dct = dct(Y, Cb, Cr)
+    Y_dct, Cb_dct, Cr_dct = dct(Y_d, Cb_d, Cr_d)
     #7.1.3
     showImg(np.log(abs(Y_dct) + 0.0001), cmap= cm_grey, caption= "Y DCT")
     showImg(np.log(abs(Cb_dct) + 0.0001), cmap= cm_grey, caption= "Cb DCT")
@@ -190,6 +223,25 @@ def main():
     Y_idct, Cb_idct, Cr_idct = idct(Y_dct, Cb_dct, Cr_dct)
     print("[Y_d, Cb_d, Cr_d]", Y_d[0][0], Cb_d[0][0], Cr_d[0][0])
     print("[Y_idct, Cb_idct, Cr_idct]", Y_idct[0][0], Cb_idct[0][0], Cr_idct[0][0])
+
+    #7.2.3
+    Y_dct8, Cb_dct8, Cr_dct8 = dctBlocks(Y_d, Cb_d, Cr_d, 8)
+    showImg(np.log(abs(Y_dct8) + 0.0001), cmap= cm_grey, caption= "Y DCT 8x8")
+    showImg(np.log(abs(Cb_dct8) + 0.0001), cmap= cm_grey, caption= "Cb DCT 8x8")
+    showImg(np.log(abs(Cr_dct8) + 0.0001), cmap= cm_grey, caption= "Cr DCT 8x8")
+    Y_idct8, Cb_idct8, Cr_idct8 = idctBlocks(Y_dct8, Cb_dct8, Cr_dct8, 8)
+    #print("[Y_d, Cb_d, Cr_d]", Y_d[0][0], Cb_d[0][0], Cr_d[0][0])
+    print("[Y_idct8, Cb_idct8, Cr_idct8]", Y_idct8[0][0], Cb_idct8[0][0], Cr_idct8[0][0])
+
+    #7.3
+    #Fazer o mesmo que 7.2 mas com BS=64
+    Y_dct64, Cb_dct64, Cr_dct64 = dctBlocks(Y_d, Cb_d, Cr_d, 64)
+    showImg(np.log(abs(Y_dct64) + 0.0001), cmap= cm_grey, caption= "Y DCT 64x64")
+    showImg(np.log(abs(Cb_dct64) + 0.0001), cmap= cm_grey, caption= "Cb DCT 64x64")
+    showImg(np.log(abs(Cr_dct64) + 0.0001), cmap= cm_grey, caption= "Cr DCT 64x64")
+    Y_idct64, Cb_idct64, Cr_idct64 = idctBlocks(Y_dct64, Cb_dct64, Cr_dct64, 64)
+    #print("[Y_d, Cb_d, Cr_d]", Y_d[0][0], Cb_d[0][0], Cr_d[0][0])
+    print("[Y_idct64, Cb_idct64, Cr_idct64]", Y_idct64[0][0], Cb_idct64[0][0], Cr_idct64[0][0])
 
     plt.show()
 
