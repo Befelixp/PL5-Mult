@@ -14,18 +14,6 @@ def splitRGB(img): #separar matrizes
     B = img[:, :, 2]
     return R, G, B
 
-def encoder(img):
-    R, G, B= splitRGB(img)
-    #Padding caso dimensão não seja multiplo de 32x32 (copia a ultima linha/coluna para preencher o espaço em falta)
-    #4.1
-    nl, nc= R.shape #n linhas e colunas
-    nl_pad= 32-(nl%32)
-    nc_pad= 32-(nc%32)
-    R= np.pad(R, ((0, nl_pad), (0, nc_pad)), mode= 'edge') #edge= copia a ultima linha/coluna
-    G= np.pad(G, ((0, nl_pad), (0, nc_pad)), mode= 'edge')
-    B= np.pad(B, ((0, nl_pad), (0, nc_pad)), mode= 'edge')
-    return R, G, B
-
 #Decoder
 
 def joinRGB(R, G, B):
@@ -38,12 +26,7 @@ def joinRGB(R, G, B):
 
     return imgRec
 
-def decoder(R,G,B, tamOriginal):
-    imgRec= joinRGB(R, G, B)
-    #4.2
-    #remover padding
-    imgRec= imgRec[:tamOriginal[0], :tamOriginal[1], :]
-    return imgRec
+
 
 def showImg(img, cmap= None, caption= ""):
     plt.figure()
@@ -153,6 +136,84 @@ def idctBlocks(Y, Cb, Cr, BS):
     return Y_dct, Cb_dct, Cr_dct 
 
 
+def encoder(img):
+    #3.2 e 3.3
+    if (input("Mostrar imagem original com colormap especifico? (s/n): ") in "sS"):
+        cm_N= int(input("Introduza o valor de N para o colormap: "))
+        cm_red = input("Introduza o valor de cor para o vermelho (0-1): ")
+        cm_green = input("Introduza o valor de cor para o verde (0-1): ")
+        cm_blue = input("Introduza o valor de cor para o azul (0-1): ")
+        cm_cor = (float(cm_red), float(cm_green), float(cm_blue))
+        cm_user = clr.LinearSegmentedColormap.from_list("user", [(0,0,0), cm_cor], N= cm_N)
+        showImg(img, cmap= cm_user, caption= "Imagem original com colormap do user")
+        plt.show(block= False)
+
+    R, G, B= splitRGB(img)
+    #Padding caso dimensão não seja multiplo de 32x32 (copia a ultima linha/coluna para preencher o espaço em falta)
+    #4.1
+    nl, nc= R.shape #n linhas e colunas
+    nl_pad= 32-(nl%32)
+    nc_pad= 32-(nc%32)
+    R= np.pad(R, ((0, nl_pad), (0, nc_pad)), mode= 'edge') #edge= copia a ultima linha/coluna
+    G= np.pad(G, ((0, nl_pad), (0, nc_pad)), mode= 'edge')
+    B= np.pad(B, ((0, nl_pad), (0, nc_pad)), mode= 'edge')
+
+    cm_red= clr.LinearSegmentedColormap.from_list("red", [(0,0,0), (1,0,0)], N= 256) #color, (range de cores rgb do vermelho)
+    cm_green = clr.LinearSegmentedColormap.from_list("green", [(0, 0, 0), (0, 1, 0)], N=256) #256 = 2^8 (8 bits de cores)
+    cm_blue = clr.LinearSegmentedColormap.from_list("blue", [(0, 0, 0), (0, 0, 1)], N=256)
+    if (input("Mostrar imagens RGB? (s/n): ") in "sS"):
+        showImg(R, cmap= cm_red, caption= "Red")
+        showImg(G, cmap= cm_green, caption= "Green")
+        showImg(B, cmap= cm_blue, caption= "Blue")
+        plt.show(block= False)
+
+    #5.3
+    Y , Cb, Cr= RGB_to_yCbCr(R, G, B)
+    cm_grey= clr.LinearSegmentedColormap.from_list("grey", [(0,0,0), (1,1,1)], N= 256)
+    if(input("Mostrar imagens YCbCr? (s/n): ") in "sS"):
+        showImg(Y, cmap= cm_grey, caption= "Y")
+        showImg(Cb, cmap= cm_grey, caption= "Cb")
+        showImg(Cr, cmap= cm_grey, caption= "Cr")
+        plt.show(block= False)
+
+    #6.3
+    n= int(input("Introduza o valor de n para o downsampling (420, 422, 444): "))
+    Y_d, Cb_d, Cr_d = downsampling(Y, Cb, Cr, n)
+    if(input("Mostrar imagens YCbCr downsampling? (s/n): ") in "sS"):
+        showImg(Y_d, cmap= cm_grey, caption= "Y downsampling")
+        showImg(Cb_d, cmap= cm_grey, caption= "Cb downsampling")
+        showImg(Cr_d, cmap= cm_grey, caption= "Cr downsampling")
+        plt.show(block= False)
+
+    #7.1.3
+    Y_dct, Cb_dct, Cr_dct = dct(Y_d, Cb_d, Cr_d)
+    if(input("Mostrar imagens YCbCr DCT? (s/n): ") in "sS"):
+        showImg(np.log(abs(Y_dct) + 0.0001), cmap= cm_grey, caption= "Y DCT")
+        showImg(np.log(abs(Cb_dct) + 0.0001), cmap= cm_grey, caption= "Cb DCT")
+        showImg(np.log(abs(Cr_dct) + 0.0001), cmap= cm_grey, caption= "Cr DCT")
+        plt.show(block= False)
+    #7.2.3
+    BS= int(input("Introduza o valor de BS para os blocos (8, 64): "))
+    Y_dct8, Cb_dct8, Cr_dct8 = dctBlocks(Y_d, Cb_d, Cr_d, BS)
+    if(input("Mostrar imagens YCbCr DCT {}x{}? (s/n): ".format(BS, BS)) in "sS"):
+        showImg(np.log(abs(Y_dct8) + 0.0001), cmap= cm_grey, caption= "Y DCT 8x8")
+        showImg(np.log(abs(Cb_dct8) + 0.0001), cmap= cm_grey, caption= "Cb DCT 8x8")
+        showImg(np.log(abs(Cr_dct8) + 0.0001), cmap= cm_grey, caption= "Cr DCT 8x8")
+        plt.show(block= False)
+    
+
+    
+
+    
+
+def decoder(R,G,B, tamOriginal):
+    imgRec= joinRGB(R, G, B)
+    #4.2
+    #remover padding
+    imgRec= imgRec[:tamOriginal[0], :tamOriginal[1], :]
+    return imgRec
+
+
 #Main
 def main():
     # -----Ex.3-----
@@ -160,90 +221,9 @@ def main():
     #Ler imagens
     fname= "airport.bmp"
     img= plt.imread("imagens/" + fname)
-
-    #debug print:
-    print(img.shape) #tamanho da imagem
-    #print(img.dtype) #tipo da imagem
-
     showImg(img, caption="Imagem original: " + fname)
-
-    #3.2 colormap
-    cm_red= clr.LinearSegmentedColormap.from_list("red", [(0,0,0), (1,0,0)], N= 256) #color, (range de cores rgb do vermelho)
-    cm_green = clr.LinearSegmentedColormap.from_list("green", [(0, 0, 0), (0, 1, 0)], N=256) #256 = 2^8 (8 bits de cores)
-    cm_blue = clr.LinearSegmentedColormap.from_list("blue", [(0, 0, 0), (0, 0, 1)], N=256)
-    cm_grey = clr.LinearSegmentedColormap.from_list("grey", [(0, 0, 0), (1, 1, 1)], N=256)
-
-    #3.3
-    #encoder
-    print("Imagem [0][0]: ", img[0][0])
-    R, G, B= encoder(img)
-    showImg(R, cmap= cm_red, caption= "Red")
-    #plt.savefig("imagens/" + fname + "_red.png") #guardar imagens
-    showImg(G, cmap= cm_green, caption= "Green")
-    #plt.savefig("imagens/" + fname + "_green.png") #guardar imagens
-    showImg(B, cmap=cm_blue, caption="Blue")
-    #plt.savefig("imagens/" + fname + "_blue.png") #guardar imagens
-    #showImg(?, cmap=cm_grey, caption="Grey") fzr so dps do yCbCr
-
-    #decoder
-    #recebe rgb do encoder acima e calcula a imagem reconstruida
-    imgRec= decoder(R, G, B, img.shape)
-    showImg(imgRec, caption= "Imagem reconstruida: " + fname)
-    #plt.savefig("imagens/" + fname + "_rec.png")
-
-    Y , Cb, Cr= RGB_to_yCbCr(R, G, B)
-    showImg(Y, cmap= cm_grey, caption= "Y")
-    showImg(Cb, cmap= cm_grey, caption= "Cb")
-    showImg(Cr, cmap= cm_grey, caption= "Cr")
-
-    R, G, B= yCbCr_to_RGB(Y, Cb, Cr)
-    imgRec= decoder(R, G, B, img.shape)
-    showImg(imgRec, caption= "Imagem reconstruida de YCbCr: " + fname)
-    print("Imagem reconstruida YCbCr [0][0]: ", imgRec[0][0])
+    encoder(img)
     
-    # -----Ex.6-----
-    Y_d,Cb_d, Cr_d = downsampling(Y,Cb, Cr, 422)
-    showImg(Cb_d, cmap= cm_grey, caption= "Cb downsampled")
-    showImg(Cr_d, cmap= cm_grey, caption= "Cr downsampled")
-    print("Cb downsampled size: ", Cb_d.shape)
-    print("Cr downsampled size: ", Cr_d.shape)
-    Y_u,Cb_u, Cr_u = upsampling(Y_d,Cb_d, Cr_d, 422)
-    showImg(Cb_u, cmap= cm_grey, caption= "Cb upsampled")
-    showImg(Cr_u, cmap= cm_grey, caption= "Cr upsampled")
-    print("Cb upsampled size: ", Cb_u.shape)
-    print("Cr upsampled size: ", Cr_u.shape)
-
-    # -----Ex.7-----
-    Y_dct, Cb_dct, Cr_dct = dct(Y_d, Cb_d, Cr_d)
-    #7.1.3
-    showImg(np.log(abs(Y_dct) + 0.0001), cmap= cm_grey, caption= "Y DCT")
-    showImg(np.log(abs(Cb_dct) + 0.0001), cmap= cm_grey, caption= "Cb DCT")
-    showImg(np.log(abs(Cr_dct) + 0.0001), cmap= cm_grey, caption= "Cr DCT")
-    #7.1.4
-    Y_idct, Cb_idct, Cr_idct = idct(Y_dct, Cb_dct, Cr_dct)
-    print("[Y_d, Cb_d, Cr_d]", Y_d[0][0], Cb_d[0][0], Cr_d[0][0])
-    print("[Y_idct, Cb_idct, Cr_idct]", Y_idct[0][0], Cb_idct[0][0], Cr_idct[0][0])
-
-    #7.2.3
-    Y_dct8, Cb_dct8, Cr_dct8 = dctBlocks(Y_d, Cb_d, Cr_d, 8)
-    showImg(np.log(abs(Y_dct8) + 0.0001), cmap= cm_grey, caption= "Y DCT 8x8")
-    showImg(np.log(abs(Cb_dct8) + 0.0001), cmap= cm_grey, caption= "Cb DCT 8x8")
-    showImg(np.log(abs(Cr_dct8) + 0.0001), cmap= cm_grey, caption= "Cr DCT 8x8")
-    Y_idct8, Cb_idct8, Cr_idct8 = idctBlocks(Y_dct8, Cb_dct8, Cr_dct8, 8)
-    #print("[Y_d, Cb_d, Cr_d]", Y_d[0][0], Cb_d[0][0], Cr_d[0][0])
-    print("[Y_idct8, Cb_idct8, Cr_idct8]", Y_idct8[0][0], Cb_idct8[0][0], Cr_idct8[0][0])
-
-    #7.3
-    #Fazer o mesmo que 7.2 mas com BS=64
-    Y_dct64, Cb_dct64, Cr_dct64 = dctBlocks(Y_d, Cb_d, Cr_d, 64)
-    showImg(np.log(abs(Y_dct64) + 0.0001), cmap= cm_grey, caption= "Y DCT 64x64")
-    showImg(np.log(abs(Cb_dct64) + 0.0001), cmap= cm_grey, caption= "Cb DCT 64x64")
-    showImg(np.log(abs(Cr_dct64) + 0.0001), cmap= cm_grey, caption= "Cr DCT 64x64")
-    Y_idct64, Cb_idct64, Cr_idct64 = idctBlocks(Y_dct64, Cb_dct64, Cr_dct64, 64)
-    #print("[Y_d, Cb_d, Cr_d]", Y_d[0][0], Cb_d[0][0], Cr_d[0][0])
-    print("[Y_idct64, Cb_idct64, Cr_idct64]", Y_idct64[0][0], Cb_idct64[0][0], Cr_idct64[0][0])
-
-    plt.show()
 
 if __name__ == "__main__":
     main()
