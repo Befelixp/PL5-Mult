@@ -202,9 +202,57 @@ def encoder(img):
         plt.show(block= False)
     
 
+def quantizationY_matrix_gen(qf):
+    s = get_scale(qf)
+    Q_Y = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
+                    [12, 12, 14, 19, 26, 58, 60, 55],
+                    [14, 13, 16, 24, 40, 57, 69, 56],
+                    [14, 17, 22, 29, 51, 87, 80, 62],
+                    [18, 22, 37, 56, 68, 109, 103, 77],
+                    [24, 35, 55, 64, 81, 104, 113, 92],
+                    [49, 64, 78, 87, 103, 121, 120, 101],
+                    [72, 92, 95, 98, 112, 100, 103, 99]])
     
+    Qs = np.floor((s * Q_Y + 50 ) / 100)
+    Qs[Qs == 0] = 1
 
+    return Qs
+
+def quantizationCbCr_matrix_gen(qf):
+    s= get_scale(qf)
+    Q_CbCr = np.array([[17, 18, 24, 47, 99, 99, 99, 99],
+                       [18,21,26,66,99,99,99,99],
+                        [24,26,66,99,99,99,99,99],
+                        [47,66,99,99,99,99,99,99],
+                        [99,99,99,99,99,99,99,99],
+                        [99,99,99,99,99,99,99,99],
+                        [99,99,99,99,99,99,99,99],
+                        [99,99,99,99,99,99,99,99]])
+    Qs = np.floor((s * Q_CbCr + 50 ) / 100)
+    Qs[Qs == 0] = 1               
+    return Qs    
+
+def get_scale(qf):
+    if qf < 1:
+        qf = 1
+    elif qf > 100:
+        qf = 100
     
+    if qf < 50:
+        return (100 - qf)/50
+    if qf >= 50:
+        return 50/qf
+
+#é retornado Y_q, Cb_q, Cr_q
+def quantization(Y_dct_block, Cb_dct_block, Cr_dct_block, qf):
+    return np.round(Y_dct_block/quantizationY_matrix_gen(qf)), np.round(Cb_dct_block/quantizationCbCr_matrix_gen(qf)), np.round(Cr_dct_block/quantizationCbCr_matrix_gen(qf))
+#acho q a desquantização está errada
+
+#é retornado Y_dct_block, Cb_dct_block, Cr_dct_block
+def dequantization(Y_dct_block, Cb_dct_block, Cr_dct_block, qf):
+    return Y_dct_block*quantizationY_matrix_gen(qf), Cb_dct_block*quantizationCbCr_matrix_gen(qf), Cr_dct_block*quantizationCbCr_matrix_gen(qf)
+
+
 
 def decoder(R,G,B, tamOriginal):
     imgRec= joinRGB(R, G, B)
