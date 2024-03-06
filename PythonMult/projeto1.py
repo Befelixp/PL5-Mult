@@ -75,6 +75,8 @@ def upsampling(Y,Cb, Cr, n):
         Cb_u = cv2.resize(Cb,None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
         Cr_u = cv2.resize(Cr,None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
         return Y,Cb_u, Cr_u
+    if n == 444:
+        return Y, Cb, Cr
     return print("valor de n errado!")
 
 # ---- Ex 7 ----
@@ -133,12 +135,9 @@ def idctBlocks(Y, Cb, Cr, BS):
     return Y_dct, Cb_dct, Cr_dct 
 
 #8
-def quantization_matrix_gen(qf, matrix):
-    s= get_scale(qf)
-
-    Qs = np.floor((s * matrix + 50 ) / 100)
-    Qs[Qs == 0] = 1               
-    return Qs    
+def quantization_matrix_gen(qf, Q):
+    scale = get_scale(qf)
+    return np.clip(np.round(Q * scale), 1, 255)  
 
 def get_scale(qf):
     if qf < 1:
@@ -152,18 +151,51 @@ def get_scale(qf):
         return 50/qf
 
 
-#é retornado Y_q, Cb_q, Cr_q
-def quantization(Y_dct_block, Cb_dct_block, Cr_dct_block, qf):
-    return np.round(Y_dct_block/quantization_matrix_gen(qf,Q_Y)), np.round(Cb_dct_block/quantization_matrix_gen(qf,Q_CbCr)), np.round(Cr_dct_block/quantization_matrix_gen(qf,Q_CbCr))
-#acho q a desquantização está errada
+#dividir Y, Cb e Cr por matriz de quantização (de 8 em 8)
+def quantization(Y_dct, Cb_dct, Cr_dct, qf, Q_Y, Q_CbCr):
+    Y_q = np.zeros_like(Y_dct)
+    Cb_q = np.zeros_like(Cb_dct)
+    Cr_q = np.zeros_like(Cr_dct)
 
-#é retornado Y_dct_block, Cb_dct_block, Cr_dct_block
-def dequantization(Y_dct_block, Cb_dct_block, Cr_dct_block, qf):
-    return Y_dct_block*quantization_matrix_gen(qf,Q_Y), Cb_dct_block*quantization_matrix_gen(qf,Q_CbCr), Cr_dct_block*quantization_matrix_gen(qf,Q_CbCr)
+    # Define a matriz de quantização para o canal Y
+    Q_Y_scaled = quantization_matrix_gen(qf, Q_Y)
+    # Define a matriz de quantização para os canais Cb e Cr
+    Q_CbCr_scaled = quantization_matrix_gen(qf, Q_CbCr)
+
+    # Itera sobre os blocos 8x8
+    for i in range(0, Y_dct.shape[0], 8):
+        for j in range(0, Y_dct.shape[1], 8):
+            # Aplica a quantização a cada bloco
+            Y_q[i:i+8, j:j+8] = np.around(np.divide(Y_dct[i:i+8, j:j+8], Q_Y_scaled))
+    for i in range(0, Cb_dct.shape[0], 8):
+        for j in range(0, Cb_dct.shape[1], 8):
+            Cb_q[i:i+8, j:j+8] = np.around(np.divide(Cb_dct[i:i+8, j:j+8], Q_CbCr_scaled))
+            Cr_q[i:i+8, j:j+8] = np.around(np.divide(Cr_dct[i:i+8, j:j+8], Q_CbCr_scaled))
+
+    return Y_q, Cb_q, Cr_q
+
+#desquantização 8x8
+def dequantization(Y_q, Cb_q, Cr_q, qf, Q_Y, Q_CbCr):
+    Y_dct = np.zeros_like(Y_q)
+    Cb_dct = np.zeros_like(Cb_q)
+    Cr_dct = np.zeros_like(Cr_q)
+
+    # Iterar sobre os blocos 8x8
+    for i in range(0, Y_q.shape[0], 8):
+        for j in range(0, Y_q.shape[1], 8):
+            # Aplicar desquantização a cada bloco
+            Y_dct[i:i+8, j:j+8] = np.multiply(Y_q[i:i+8, j:j+8], quantization_matrix_gen(qf, Q_Y))
+    for i in range(0, Cb_q.shape[0], 8):
+        for j in range(0, Cb_q.shape[1], 8):
+            Cb_dct[i:i+8, j:j+8] = np.multiply(Cb_q[i:i+8, j:j+8], quantization_matrix_gen(qf, Q_CbCr))
+            Cr_dct[i:i+8, j:j+8] = np.multiply(Cr_q[i:i+8, j:j+8], quantization_matrix_gen(qf, Q_CbCr))
+
+    return Y_dct, Cb_dct, Cr_dct
 
 
 def encoder(img):
     #3.2 e 3.3
+    R, G, B= splitRGB(img)
     if (input("Mostrar imagem original com colormap especifico? (s/n): ") in "sS"):
         cm_N= int(input("Introduza o valor de N para o colormap: "))
         cm_red = input("Introduza o valor de cor para o vermelho (0-1): ")
@@ -171,10 +203,9 @@ def encoder(img):
         cm_blue = input("Introduza o valor de cor para o azul (0-1): ")
         cm_cor = (float(cm_red), float(cm_green), float(cm_blue))
         cm_user = clr.LinearSegmentedColormap.from_list("user", [(0,0,0), cm_cor], N= cm_N)
-        showImg(img, cmap= cm_user, caption= "Imagem original com colormap do user")
+        showImg(R, cmap= cm_user, caption= "Imagem original com colormap do user")
         plt.show(block= False)
 
-    R, G, B= splitRGB(img)
     #Padding caso dimensão não seja multiplo de 32x32 (copia a ultima linha/coluna para preencher o espaço em falta)
     #4.1
     nl, nc= R.shape #n linhas e colunas
@@ -227,6 +258,7 @@ def encoder(img):
         showImg(np.log(abs(Cr_dct8) + 0.0001), cmap= cm_grey, caption= "Cr DCT 8x8")
         plt.show(block= False)
 
+    #Matriz de quantização (valores do slide 32 M2.1)
     Q_Y = np.array([[16, 11, 10, 16, 24, 40, 51, 61],
                     [12, 12, 14, 19, 26, 58, 60, 55],
                     [14, 13, 16, 24, 40, 57, 69, 56],
@@ -243,13 +275,69 @@ def encoder(img):
                         [99,99,99,99,99,99,99,99],
                         [99,99,99,99,99,99,99,99],
                         [99,99,99,99,99,99,99,99]])
+    #8.1. Crie uma função para quantizar os coeficientes da DCT para cada bloco 8x8.
+    qf= int(input("Introduza o valor de QF para a quantização (1-100): "))
+    Y_q, Cb_q, Cr_q = quantization(Y_dct8, Cb_dct8, Cr_dct8, qf, Q_Y, Q_CbCr)
+    if(input("Mostrar imagens YCbCr quantizadas? (s/n): ") in "sS"):
+        showImg(np.log(abs(Y_q) + 0.0001), cmap= cm_grey, caption= "Y quantizada")
+        showImg(np.log(abs(Cb_q) + 0.0001), cmap= cm_grey, caption= "Cb quantizada")
+        showImg(np.log(abs(Cr_q) + 0.0001), cmap= cm_grey, caption= "Cr quantizada")
+        # plt.show(block= False)
+        plt.show(block = False)
+
+    return Y_q, Cb_q, Cr_q, Q_Y, Q_CbCr, qf, BS, n
 
 
-def decoder(R,G,B, tamOriginal):
-    imgRec= joinRGB(R, G, B)
+    
+
+#fazer passos inversos para reconstruir a imagem
+def decoder(Y_q, Cb_q, Cr_q, Q_Y, Q_CbCr, qf, BS, n, nl, nc):
+    #colormaps
+    cm_grey= clr.LinearSegmentedColormap.from_list("grey", [(0,0,0), (1,1,1)], N= 256)
+    cm_red= clr.LinearSegmentedColormap.from_list("red", [(0,0,0), (1,0,0)], N= 256)
+    cm_green= clr.LinearSegmentedColormap.from_list("green", [(0,0,0), (0,1,0)], N= 256)
+    cm_blue= clr.LinearSegmentedColormap.from_list("blue", [(0,0,0), (0,0,1)], N= 256)
+
+    #9.4
+    Y_dct8, Cb_dct8, Cr_dct8 = dequantization(Y_q, Cb_q, Cr_q, qf, Q_Y, Q_CbCr)
+    if(input("Mostrar imagens YCbCr desquantizadas? (s/n): ") in "sS"):
+        showImg(np.log(abs(Y_dct8) + 0.0001), cmap= cm_grey, caption= "Y desquantizada")
+        showImg(np.log(abs(Cb_dct8) + 0.0001), cmap= cm_grey, caption= "Cb desquantizada")
+        showImg(np.log(abs(Cr_dct8) + 0.0001), cmap= cm_grey, caption= "Cr desquantizada")
+        plt.show(block = False)
+    
+    #7.2.4
+    Y_rec, Cb_rec, Cr_rec = idctBlocks(Y_dct8, Cb_dct8, Cr_dct8, BS)
+    if(input("Mostrar imagens YCbCr IDCT {}x{}? (s/n): ".format(BS, BS)) in "sS"):
+        showImg(Y_rec, cmap= cm_grey, caption= "Y IDCT")
+        showImg(Cb_rec, cmap= cm_grey, caption= "Cb IDCT")
+        showImg(Cr_rec, cmap= cm_grey, caption= "Cr IDCT")
+        plt.show(block = False)
+    
+    #6.4
+    Y, Cb, Cr = upsampling(Y_rec, Cb_rec, Cr_rec, n)
+    if(input("Mostrar imagens YCbCr upsampled? (s/n): ") in "sS"):
+        showImg(Y, cmap= cm_grey, caption= "Y upsampled")
+        showImg(Cb, cmap= cm_grey, caption= "Cb upsampled")
+        showImg(Cr, cmap= cm_grey, caption= "Cr upsampled")
+        plt.show(block= False)
+    
+    #5.4
+    R, G, B = yCbCr_to_RGB(Y, Cb, Cr)
+    if(input("Mostrar imagens RGB? (s/n): ") in "sS"):
+        showImg(R, cmap= cm_red, caption= "Red")
+        showImg(G, cmap= cm_green, caption= "Green")
+        showImg(B, cmap= cm_blue, caption= "Blue")
+        plt.show(block= False)
+    
     #4.2
-    #remover padding
-    imgRec= imgRec[:tamOriginal[0], :tamOriginal[1], :]
+    R= R[:nl, :nc]
+    G= G[:nl, :nc]
+    B= B[:nl, :nc]
+
+    #3.5
+    imgRec= joinRGB(R, G, B)
+
     return imgRec
 
 
@@ -261,7 +349,10 @@ def main():
     fname= "airport.bmp"
     img= plt.imread("imagens/" + fname)
     showImg(img, caption="Imagem original: " + fname)
-    encoder(img)
+    Y_q, Cb_q, Cr_q, Q_Y, Q_CbCr, qf, BS, n = encoder(img)
+    imgRec = decoder(Y_q, Cb_q, Cr_q, Q_Y, Q_CbCr, qf, BS, n, img.shape[0], img.shape[1])
+    showImg(imgRec, caption= "Imagem reconstruida")
+    plt.show()
     
 
 if __name__ == "__main__":
