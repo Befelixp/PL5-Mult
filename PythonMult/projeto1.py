@@ -198,23 +198,26 @@ def dpcm(Y, Cb, Cr):
     Cb_dpcm = np.zeros(Cb.shape)
     Cr_dpcm = np.zeros(Cr.shape)
 
-    #primeiro elemento é igual
-    Y_dpcm[0,0] = Y[0,0]
-    Cb_dpcm[0,0] = Cb[0,0]
-    Cr_dpcm[0,0] = Cr[0,0]
 
-    #restantes elementos
-    for i in range(0, Y.shape[0]):
-        for j in range(0, Y.shape[1]):
-            if i == 0 and j == 0:
-                continue
-            Y_dpcm[i, j] = Y[i, j] - Y[i, j-1]
-    for i in range(0, Cb.shape[0]):
-        for j in range(0, Cb.shape[1]):
-            if i == 0 and j == 0:
-                continue
-            Cb_dpcm[i, j] = Cb[i, j] - Cb[i, j-1]
-            Cr_dpcm[i, j] = Cr[i, j] - Cr[i, j-1]
+    for i in range(0, Y.shape[0], 8):
+        for j in range(0, Y.shape[1], 8):
+            for k in range(8):
+                for l in range(8):
+                    if k == 0 and l == 0:
+                        Y_dpcm[i+k, j+l] = Y[i+k, j+l]
+                    else:
+                        Y_dpcm[i+k, j+l] = Y[i+k, j+l] - Y[i+k, j+l-1]
+
+    for i in range(0, Cb.shape[0], 8):
+        for j in range(0, Cb.shape[1], 8):
+            for k in range(8):
+                for l in range(8):
+                    if k == 0 and l == 0:
+                        Cb_dpcm[i+k, j+l] = Cb[i+k, j+l]
+                        Cr_dpcm[i+k, j+l] = Cr[i+k, j+l]
+                    else:
+                        Cb_dpcm[i+k, j+l] = Cb[i+k, j+l] - Cb[i+k, j+l-1]
+                        Cr_dpcm[i+k, j+l] = Cr[i+k, j+l] - Cr[i+k, j+l-1]
     return Y_dpcm, Cb_dpcm, Cr_dpcm
 
 #função IDPCM
@@ -223,24 +226,24 @@ def idpcm(Y_dpcm, Cb_dpcm, Cr_dpcm):
     Cb = np.zeros(Cb_dpcm.shape)
     Cr = np.zeros(Cr_dpcm.shape)
 
-    #primeiro elemento é igual
-    Y[0,0] = Y_dpcm[0,0]
-    Cb[0,0] = Cb_dpcm[0,0]
-    Cr[0,0] = Cr_dpcm[0,0]
-
-    #restantes elementos
-    for i in range(0, Y_dpcm.shape[0]):
-        for j in range(0, Y_dpcm.shape[1]):
-            if i == 0 and j == 0:
-                continue
-            Y[i, j] = Y_dpcm[i, j] + Y[i, j-1]
-    for i in range(0, Cb_dpcm.shape[0]):
-        for j in range(0, Cb_dpcm.shape[1]):
-            if i == 0 and j == 0:
-                continue
-            Cb[i, j] = Cb_dpcm[i, j] + Cb[i, j-1]
-            Cr[i, j] = Cr_dpcm[i, j] + Cr[i, j-1]
-
+    for i in range(0, Y_dpcm.shape[0], 8):
+        for j in range(0, Y_dpcm.shape[1], 8):
+            for k in range(8):
+                for l in range(8):
+                    if k == 0 and l == 0:
+                        Y[i+k, j+l] = Y_dpcm[i+k, j+l]
+                    else:
+                        Y[i+k, j+l] = Y[i+k, j+l-1] + Y_dpcm[i+k, j+l]
+    for i in range(0, Cb_dpcm.shape[0], 8):
+        for j in range(0, Cb_dpcm.shape[1], 8):
+            for k in range(8):
+                for l in range(8):
+                    if k == 0 and l == 0:
+                        Cb[i+k, j+l] = Cb_dpcm[i+k, j+l]
+                        Cr[i+k, j+l] = Cr_dpcm[i+k, j+l]
+                    else:
+                        Cb[i+k, j+l] = Cb[i+k, j+l-1] + Cb_dpcm[i+k, j+l]
+                        Cr[i+k, j+l] = Cr[i+k, j+l-1] + Cr_dpcm[i+k, j+l]
     return Y, Cb, Cr
 
 
