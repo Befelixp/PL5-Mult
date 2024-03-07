@@ -422,24 +422,24 @@ def diferenca_Y(Y_orig, Y_rec):
     cm_grey= clr.LinearSegmentedColormap.from_list("grey", [(0,0,0), (1,1,1)], N= 256)
     showImg(dif, cmap=cm_grey, caption= "Diferença entre Y e Y reconstruido")
 
-def MSE(img1, img2):
-    return np.mean((img1 - img2)**2)
+def MSE(imgO, imgR, l, c):
+    return (np.sum((imgO - imgR)**2) / (l*c))
 
-def RMSE(img1, img2):
-    return np.sqrt(MSE(img1, img2))
+def RMSE(imgO, imgR, l, c):
+    return np.sqrt(MSE(imgO, imgR, l, c))
 
-def SNR(img1, img2):
-    return 10 * np.log10(np.mean(img1**2) / MSE(img1, img2))
+def SNR(imgO, imgR, l, c):
+    P = np.sum(imgO**2) / (l*c)
+    return 10 * np.log10(P / MSE(imgO, imgR, l, c))
 
-#PSNR = 10 * log10(max(I0) / MSE)
-def PSNR(img1, img2):
-    return 10 * np.log10(np.max(img1) / MSE(img1, img2))
+def PSNR(imgO, imgR, l, c):
+    return np.log10(np.max(imgO)**2 / MSE(imgO, imgR, l, c))
 
-def maxDiff(img1, img2):
-    return np.max(np.abs(img1 - img2))
+def maxDiff(imgO, imgR):
+    return np.max(np.abs(imgO - imgR))
 
-def avgDiff(img1, img2):
-    return np.mean(np.abs(img1 - img2))
+def avgDiff(imgO, imgR):
+    return np.mean(np.abs(imgO - imgR))
 
 #Main
 def main():
@@ -458,13 +458,19 @@ def main():
     plt.show()
 
     #10.4
-    print("MSE: ", MSE(img, imgRec))
-    print("RMSE: ", RMSE(img, imgRec))
-    print("SNR: ", SNR(img, imgRec))
-    print("PSNR: ", PSNR(img, imgRec))
+    print("MSE: ", MSE(img, imgRec, img.shape[0], img.shape[1]))
+    print("RMSE: ", RMSE(img, imgRec, img.shape[0], img.shape[1]))
+    print("SNR: ", SNR(img, imgRec, img.shape[0], img.shape[1]))
+    print("PSNR: ", PSNR(img, imgRec, img.shape[0], img.shape[1]))
     print("Max Diff: ", maxDiff(img, imgRec))
     print("Avg Diff: ", avgDiff(img, imgRec))
 
+    # print("MSE: ", MSE(Y, Y_rec, Y.shape[0], Y.shape[1]))
+    # print("RMSE: ", RMSE(Y, Y_rec, Y.shape[0], Y.shape[1]))
+    # print("SNR: ", SNR(Y, Y_rec, Y.shape[0], Y.shape[1]))
+    # print("PSNR: ", PSNR(Y, Y_rec, Y.shape[0], Y.shape[1]))
+    # print("Max Diff: ", maxDiff(Y, Y_rec))
+    # print("Avg Diff: ", avgDiff(Y, Y_rec))
     
 
 if __name__ == "__main__":
