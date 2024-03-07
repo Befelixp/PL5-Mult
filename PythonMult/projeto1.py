@@ -346,7 +346,7 @@ def encoder(img):
         plt.show(block = False)
         
 
-    return Y_dpcm, Cb_dpcm, Cr_dpcm, Q_Y, Q_CbCr, qf, BS, n
+    return Y_dpcm, Cb_dpcm, Cr_dpcm, Q_Y, Q_CbCr, qf, BS, n, Y
 
 
     
@@ -407,8 +407,31 @@ def decoder(Y_dpcm, Cb_dpcm, Cr_dpcm, Q_Y, Q_CbCr, qf, BS, n, nl, nc):
     #3.5
     imgRec= joinRGB(R, G, B)
 
-    return imgRec
+    return imgRec, Y
 
+def diferenca_Y(Y_orig, Y_rec):
+    dif = np.abs(Y_orig - Y_rec)
+    cm_grey= clr.LinearSegmentedColormap.from_list("grey", [(0,0,0), (1,1,1)], N= 256)
+    showImg(dif, cmap=cm_grey, caption= "Diferença entre Y e Y reconstruido")
+
+def MSE(img1, img2):
+    return np.mean((img1 - img2)**2)
+
+def RMSE(img1, img2):
+    return np.sqrt(MSE(img1, img2))
+
+def SNR(img1, img2):
+    return 10 * np.log10(np.mean(img1**2) / MSE(img1, img2))
+
+def PSNR(img1, img2):
+    maxI = 255
+    return 20 * np.log10(maxI / RMSE(img1, img2))
+
+def maxDiff(img1, img2):
+    return np.max(np.abs(img1 - img2))
+
+def avgDiff(img1, img2):
+    return np.mean(np.abs(img1 - img2))
 
 #Main
 def main():
@@ -418,10 +441,22 @@ def main():
     fname= "airport.bmp"
     img= plt.imread("imagens/" + fname)
     showImg(img, caption="Imagem original: " + fname)
-    Y_q, Cb_q, Cr_q, Q_Y, Q_CbCr, qf, BS, n = encoder(img)
-    imgRec = decoder(Y_q, Cb_q, Cr_q, Q_Y, Q_CbCr, qf, BS, n, img.shape[0], img.shape[1])
+    Y_dpcm, Cb_dpcm, Cr_dpcm, Q_Y, Q_CbCr, qf, BS, n, Y = encoder(img)
+    imgRec, Y_rec = decoder(Y_dpcm, Cb_dpcm, Cr_dpcm, Q_Y, Q_CbCr, qf, BS, n, img.shape[0], img.shape[1])
     showImg(imgRec, caption= "Imagem reconstruida")
+    plt.show(block = False)
+    #10.3
+    diferenca_Y(Y, Y_rec)
     plt.show()
+
+    #10.4
+    print("MSE: ", MSE(img, imgRec))
+    print("RMSE: ", RMSE(img, imgRec))
+    print("SNR: ", SNR(img, imgRec))
+    print("PSNR: ", PSNR(img, imgRec))
+    print("Max Diff: ", maxDiff(img, imgRec))
+    print("Avg Diff: ", avgDiff(img, imgRec))
+
     
 
 if __name__ == "__main__":
