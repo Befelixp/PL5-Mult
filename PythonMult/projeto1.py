@@ -423,9 +423,9 @@ def RMSE(img1, img2):
 def SNR(img1, img2):
     return 10 * np.log10(np.mean(img1**2) / MSE(img1, img2))
 
+#PSNR = 10 * log10(max(I0) / MSE)
 def PSNR(img1, img2):
-    maxI = 255
-    return 20 * np.log10(maxI / RMSE(img1, img2))
+    return 10 * np.log10(np.max(img1) / MSE(img1, img2))
 
 def maxDiff(img1, img2):
     return np.max(np.abs(img1 - img2))
