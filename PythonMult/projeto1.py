@@ -208,11 +208,13 @@ def dpcm(Y, Cb, Cr):
         for j in range(0, Y.shape[1]):
             if i == 0 and j == 0:
                 continue
-            Y_dpcm[i, j] = Y[i, j] - Y[i-1, j]
+            Y_dpcm[i, j] = Y[i, j] - Y[i, j-1]
     for i in range(0, Cb.shape[0]):
         for j in range(0, Cb.shape[1]):
-            Cb_dpcm[i, j] = Cb[i, j] - Cb[i-1, j]
-            Cr_dpcm[i, j] = Cr[i, j] - Cr[i-1, j]
+            if i == 0 and j == 0:
+                continue
+            Cb_dpcm[i, j] = Cb[i, j] - Cb[i, j-1]
+            Cr_dpcm[i, j] = Cr[i, j] - Cr[i, j-1]
     return Y_dpcm, Cb_dpcm, Cr_dpcm
 
 #função IDPCM
@@ -231,13 +233,13 @@ def idpcm(Y_dpcm, Cb_dpcm, Cr_dpcm):
         for j in range(0, Y_dpcm.shape[1]):
             if i == 0 and j == 0:
                 continue
-            Y[i, j] = Y_dpcm[i, j] + Y[i-1, j]
+            Y[i, j] = Y_dpcm[i, j] + Y[i, j-1]
     for i in range(0, Cb_dpcm.shape[0]):
         for j in range(0, Cb_dpcm.shape[1]):
             if i == 0 and j == 0:
                 continue
-            Cb[i, j] = Cb_dpcm[i, j] + Cb[i-1, j]
-            Cr[i, j] = Cr_dpcm[i, j] + Cr[i-1, j]
+            Cb[i, j] = Cb_dpcm[i, j] + Cb[i, j-1]
+            Cr[i, j] = Cr_dpcm[i, j] + Cr[i, j-1]
 
     return Y, Cb, Cr
 
