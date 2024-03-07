@@ -192,6 +192,43 @@ def dequantization(Y_q, Cb_q, Cr_q, qf, Q_Y, Q_CbCr):
 
     return Y_dct, Cb_dct, Cr_dct
 
+#função DPCM
+def dpcm(Y, Cb, Cr):
+    Y_dpcm = np.zeros(Y.shape)
+    Cb_dpcm = np.zeros(Cb.shape)
+    Cr_dpcm = np.zeros(Cr.shape)
+
+    #primeira linha/coluna é igual
+    Y_dpcm[0, :] = Y[0, :]
+    Cb_dpcm[0, :] = Cb[0, :]
+    Cr_dpcm[0, :] = Cr[0, :]
+
+    #restantes linhas/colunas
+    for i in range(1, Y.shape[0]):
+        Y_dpcm[i, :] = Y[i, :] - Y[i-1, :]
+    for i in range(1, Cb.shape[0]):
+        Cb_dpcm[i, :] = Cb[i, :] - Cb[i-1, :]
+        Cr_dpcm[i, :] = Cr[i, :] - Cr[i-1, :]
+    return Y_dpcm, Cb_dpcm, Cr_dpcm
+
+#função IDPCM
+def idpcm(Y_dpcm, Cb_dpcm, Cr_dpcm):
+    Y = np.zeros(Y_dpcm.shape)
+    Cb = np.zeros(Cb_dpcm.shape)
+    Cr = np.zeros(Cr_dpcm.shape)
+
+    #primeira linha/coluna é igual
+    Y[0, :] = Y_dpcm[0, :]
+    Cb[0, :] = Cb_dpcm[0, :]
+    Cr[0, :] = Cr_dpcm[0, :]
+
+    #restantes linhas/colunas
+    for i in range(1, Y_dpcm.shape[0]):
+        Y[i, :] = Y[i-1, :] + Y_dpcm[i, :]
+    for i in range(1, Cb_dpcm.shape[0]):
+        Cb[i, :] = Cb[i-1, :] + Cb_dpcm[i, :]
+        Cr[i, :] = Cr[i-1, :] + Cr_dpcm[i, :]
+    return Y, Cb, Cr
 
 def encoder(img):
     #3.2 e 3.3
@@ -282,16 +319,24 @@ def encoder(img):
         showImg(np.log(abs(Y_q) + 0.0001), cmap= cm_grey, caption= "Y quantizada")
         showImg(np.log(abs(Cb_q) + 0.0001), cmap= cm_grey, caption= "Cb quantizada")
         showImg(np.log(abs(Cr_q) + 0.0001), cmap= cm_grey, caption= "Cr quantizada")
-        # plt.show(block= False)
         plt.show(block = False)
 
-    return Y_q, Cb_q, Cr_q, Q_Y, Q_CbCr, qf, BS, n
+    #9.3
+    Y_dpcm, Cb_dpcm, Cr_dpcm = dpcm(Y_q, Cb_q, Cr_q)
+    if(input("Mostrar imagens YCbCr DPCM? (s/n): ") in "sS"):
+        showImg(np.log(abs(Y_dpcm) + 0.0001), cmap= cm_grey, caption= "Y DPCM")
+        showImg(np.log(abs(Cb_dpcm) + 0.0001) , cmap= cm_grey, caption= "Cb DPCM")
+        showImg(np.log(abs(Cr_dpcm) + 0.0001), cmap= cm_grey, caption= "Cr DPCM")
+        plt.show(block = False)
+        
+
+    return Y_dpcm, Cb_dpcm, Cr_dpcm, Q_Y, Q_CbCr, qf, BS, n
 
 
     
 
 #fazer passos inversos para reconstruir a imagem
-def decoder(Y_q, Cb_q, Cr_q, Q_Y, Q_CbCr, qf, BS, n, nl, nc):
+def decoder(Y_dpcm, Cb_dpcm, Cr_dpcm, Q_Y, Q_CbCr, qf, BS, n, nl, nc):
     #colormaps
     cm_grey= clr.LinearSegmentedColormap.from_list("grey", [(0,0,0), (1,1,1)], N= 256)
     cm_red= clr.LinearSegmentedColormap.from_list("red", [(0,0,0), (1,0,0)], N= 256)
@@ -299,6 +344,14 @@ def decoder(Y_q, Cb_q, Cr_q, Q_Y, Q_CbCr, qf, BS, n, nl, nc):
     cm_blue= clr.LinearSegmentedColormap.from_list("blue", [(0,0,0), (0,0,1)], N= 256)
 
     #9.4
+    Y_q, Cb_q, Cr_q = idpcm(Y_dpcm, Cb_dpcm, Cr_dpcm)
+    if(input("Mostrar imagens YCbCr IDPCM? (s/n): ") in "sS"):
+        showImg(np.log(abs(Y_q) + 0.0001), cmap= cm_grey, caption= "Y IDPCM")
+        showImg(np.log(abs(Cb_q) + 0.0001), cmap= cm_grey, caption= "Cb IDPCM")
+        showImg(np.log(abs(Cr_q) + 0.0001), cmap= cm_grey, caption= "Cr IDPCM")
+        plt.show(block = False)
+
+    #8.4
     Y_dct8, Cb_dct8, Cr_dct8 = dequantization(Y_q, Cb_q, Cr_q, qf, Q_Y, Q_CbCr)
     if(input("Mostrar imagens YCbCr desquantizadas? (s/n): ") in "sS"):
         showImg(np.log(abs(Y_dct8) + 0.0001), cmap= cm_grey, caption= "Y desquantizada")
