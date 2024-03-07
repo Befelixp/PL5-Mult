@@ -198,17 +198,21 @@ def dpcm(Y, Cb, Cr):
     Cb_dpcm = np.zeros(Cb.shape)
     Cr_dpcm = np.zeros(Cr.shape)
 
-    #primeira linha/coluna é igual
-    Y_dpcm[0, :] = Y[0, :]
-    Cb_dpcm[0, :] = Cb[0, :]
-    Cr_dpcm[0, :] = Cr[0, :]
+    #primeiro elemento é igual
+    Y_dpcm[0,0] = Y[0,0]
+    Cb_dpcm[0,0] = Cb[0,0]
+    Cr_dpcm[0,0] = Cr[0,0]
 
-    #restantes linhas/colunas
-    for i in range(1, Y.shape[0]):
-        Y_dpcm[i, :] = Y[i, :] - Y[i-1, :]
-    for i in range(1, Cb.shape[0]):
-        Cb_dpcm[i, :] = Cb[i, :] - Cb[i-1, :]
-        Cr_dpcm[i, :] = Cr[i, :] - Cr[i-1, :]
+    #restantes elementos
+    for i in range(0, Y.shape[0]):
+        for j in range(0, Y.shape[1]):
+            if i == 0 and j == 0:
+                continue
+            Y_dpcm[i, j] = Y[i, j] - Y[i-1, j]
+    for i in range(0, Cb.shape[0]):
+        for j in range(0, Cb.shape[1]):
+            Cb_dpcm[i, j] = Cb[i, j] - Cb[i-1, j]
+            Cr_dpcm[i, j] = Cr[i, j] - Cr[i-1, j]
     return Y_dpcm, Cb_dpcm, Cr_dpcm
 
 #função IDPCM
@@ -217,18 +221,28 @@ def idpcm(Y_dpcm, Cb_dpcm, Cr_dpcm):
     Cb = np.zeros(Cb_dpcm.shape)
     Cr = np.zeros(Cr_dpcm.shape)
 
-    #primeira linha/coluna é igual
-    Y[0, :] = Y_dpcm[0, :]
-    Cb[0, :] = Cb_dpcm[0, :]
-    Cr[0, :] = Cr_dpcm[0, :]
+    #primeiro elemento é igual
+    Y[0,0] = Y_dpcm[0,0]
+    Cb[0,0] = Cb_dpcm[0,0]
+    Cr[0,0] = Cr_dpcm[0,0]
 
-    #restantes linhas/colunas
-    for i in range(1, Y_dpcm.shape[0]):
-        Y[i, :] = Y[i-1, :] + Y_dpcm[i, :]
-    for i in range(1, Cb_dpcm.shape[0]):
-        Cb[i, :] = Cb[i-1, :] + Cb_dpcm[i, :]
-        Cr[i, :] = Cr[i-1, :] + Cr_dpcm[i, :]
+    #restantes elementos
+    for i in range(0, Y_dpcm.shape[0]):
+        for j in range(0, Y_dpcm.shape[1]):
+            if i == 0 and j == 0:
+                continue
+            Y[i, j] = Y_dpcm[i, j] + Y[i-1, j]
+    for i in range(0, Cb_dpcm.shape[0]):
+        for j in range(0, Cb_dpcm.shape[1]):
+            if i == 0 and j == 0:
+                continue
+            Cb[i, j] = Cb_dpcm[i, j] + Cb[i-1, j]
+            Cr[i, j] = Cr_dpcm[i, j] + Cr[i-1, j]
+
     return Y, Cb, Cr
+
+
+
 
 def encoder(img):
     #3.2 e 3.3
