@@ -111,12 +111,12 @@ def dctBlocks(Y, Cb, Cr, BS):
     Cr_dct = np.zeros(Cr.shape)
     for i in range(0, Y.shape[0], BS):
         for j in range(0, Y.shape[1], BS):
-            Y_dct[i:i+BS, j:j+BS] = fft.dct(fft.dct(Y[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+            Y_dct[i:i+BS, j:j+BS] = fft.dct(fft.dct(Y[i:i+BS, j:j+BS], norm='ortho').T, norm='ortho').T
     #outro ciclo, pois após o downsampling, dimensão de Cb e Cr podem ser diferentes de Y
     for i in range(0, Cb.shape[0], BS):
         for j in range(0, Cb.shape[1], BS):
-            Cb_dct[i:i+BS, j:j+BS] = fft.dct(fft.dct(Cb[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
-            Cr_dct[i:i+BS, j:j+BS] = fft.dct(fft.dct(Cr[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+            Cb_dct[i:i+BS, j:j+BS] = fft.dct(fft.dct(Cb[i:i+BS, j:j+BS], norm='ortho').T, norm='ortho').T
+            Cr_dct[i:i+BS, j:j+BS] = fft.dct(fft.dct(Cr[i:i+BS, j:j+BS], norm='ortho').T, norm='ortho').T
     return Y_dct, Cb_dct, Cr_dct
 
 #7.2.2
@@ -127,16 +127,18 @@ def idctBlocks(Y, Cb, Cr, BS):
     Cr_dct = np.zeros(Cr.shape)
     for i in range(0, Y.shape[0], BS):
         for j in range(0, Y.shape[1], BS):
-            Y_dct[i:i+BS, j:j+BS] = fft.idct(fft.idct(Y[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+            Y_dct[i:i+BS, j:j+BS] = fft.idct(fft.idct(Y[i:i+BS, j:j+BS], norm='ortho').T, norm='ortho').T
     for i in range(0, Cb.shape[0], BS):
         for j in range(0, Cb.shape[1], BS):
-            Cb_dct[i:i+BS, j:j+BS] = fft.idct(fft.idct(Cb[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
-            Cr_dct[i:i+BS, j:j+BS] = fft.idct(fft.idct(Cr[i:i+BS, j:j+BS], axis=0, norm='ortho'), axis=1, norm='ortho')
+            Cb_dct[i:i+BS, j:j+BS] = fft.idct(fft.idct(Cb[i:i+BS, j:j+BS], norm='ortho').T, norm='ortho').T
+            Cr_dct[i:i+BS, j:j+BS] = fft.idct(fft.idct(Cr[i:i+BS, j:j+BS], norm='ortho').T, norm='ortho').T
     return Y_dct, Cb_dct, Cr_dct 
 
 #8
 def quantization_matrix_gen(qf, Q):
     scale = get_scale(qf)
+    if scale == 0:
+        return np.clip(np.round(Q), 1, 255)
     return np.clip(np.round(Q * scale), 1, 255)  
 
 def get_scale(qf):
@@ -180,15 +182,18 @@ def dequantization(Y_q, Cb_q, Cr_q, qf, Q_Y, Q_CbCr):
     Cb_dct = np.zeros_like(Cb_q)
     Cr_dct = np.zeros_like(Cr_q)
 
+    Q_Y_scaled = quantization_matrix_gen(qf, Q_Y)
+    Q_CbCr_scaled = quantization_matrix_gen(qf, Q_CbCr)
+
     # Iterar sobre os blocos 8x8
     for i in range(0, Y_q.shape[0], 8):
         for j in range(0, Y_q.shape[1], 8):
             # Aplicar desquantização a cada bloco
-            Y_dct[i:i+8, j:j+8] = np.multiply(Y_q[i:i+8, j:j+8], quantization_matrix_gen(qf, Q_Y))
+            Y_dct[i:i+8, j:j+8] = np.multiply(Y_q[i:i+8, j:j+8], Q_Y_scaled)
     for i in range(0, Cb_q.shape[0], 8):
         for j in range(0, Cb_q.shape[1], 8):
-            Cb_dct[i:i+8, j:j+8] = np.multiply(Cb_q[i:i+8, j:j+8], quantization_matrix_gen(qf, Q_CbCr))
-            Cr_dct[i:i+8, j:j+8] = np.multiply(Cr_q[i:i+8, j:j+8], quantization_matrix_gen(qf, Q_CbCr))
+            Cb_dct[i:i+8, j:j+8] = np.multiply(Cb_q[i:i+8, j:j+8], Q_CbCr_scaled)
+            Cr_dct[i:i+8, j:j+8] = np.multiply(Cr_q[i:i+8, j:j+8], Q_CbCr_scaled)
 
     return Y_dct, Cb_dct, Cr_dct
 
