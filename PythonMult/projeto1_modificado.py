@@ -36,20 +36,15 @@ def showImg(img, cmap= None, caption= ""):
 
 #5.1
 def RGB_to_yCbCr(R, G, B):
-    #converter para YCbCr
-    #depois alterar pro do slide 46 M1.1 (com divisão)
     Y= 0.299*R + 0.587*G + 0.114*B
-    #Cb= -0.168736*R - 0.331264*G + 0.5*B + 128
     Cb = ((B - Y) / 1.772) + 128
-    #Cr= 0.5*R - 0.418688*G - 0.081312*B + 128
     Cr = ((R - Y) / 1.402) + 128
     return Y, Cb, Cr
 
 def yCbCr_to_RGB(Y, Cb, Cr):
-    #converter para RGB
     R= np.clip((Cr-128)*1.402 + Y, 0, 255) #clip para valores entre 0 e 255
-    B= np.clip((Cb-128)*1.772 + Y, 0, 255)
-    G= np.clip((Y - (0.299*R) - (0.114*B))/0.587, 0, 255)
+    B= np.clip((Cb-128)*1.772 + Y, 0, 255) #clip para valores entre 0 e 255
+    G= np.clip((Y - (0.299*R) - (0.114*B))/0.587, 0, 255) #clip para valores entre 0 e 255
     return R, G, B
 
 # ---Ex 6---
@@ -356,6 +351,11 @@ def encoder(img):
 
     return Y_dpcm, Cb_dpcm, Cr_dpcm, Q_Y, Q_CbCr, qf, BS, n, Y
 
+#colormaps
+cm_grey= clr.LinearSegmentedColormap.from_list("grey", [(0,0,0), (1,1,1)], N= 256)
+cm_red= clr.LinearSegmentedColormap.from_list("red", [(0,0,0), (1,0,0)], N= 256)
+cm_green= clr.LinearSegmentedColormap.from_list("green", [(0,0,0), (0,1,0)], N= 256)
+cm_blue= clr.LinearSegmentedColormap.from_list("blue", [(0,0,0), (0,0,1)], N= 256)
 
     
 
