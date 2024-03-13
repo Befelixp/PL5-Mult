@@ -6,9 +6,10 @@ import scipy.fftpack as fft
 
 #-----Ex.2-----
 
+
 #Encoder
 
-def splitRGB(img): #separar matrizes
+def splitRGB(img): #serar matrizes
     R = img[:, :, 0]
     G = img[:, :, 1]
     B = img[:, :, 2]
@@ -83,6 +84,10 @@ def dct(Y, Cb, Cr):
     Cr_dct = fft.dct(fft.dct(Cr, axis=0, norm='ortho'), axis=1, norm='ortho')
     return Y_dct, Cb_dct, Cr_dct
 
+#ortho = normalização
+#axis=0 -> aplicar a dct/idct a cada linha
+#axis=1 -> aplicar a dct/idct a cada coluna
+#chama a função dct duas vezes para aplicar a dct a cada linha e coluna
 
 #7.1.2
 def idct(Y_dct, Cb_dct, Cr_dct):
@@ -91,10 +96,7 @@ def idct(Y_dct, Cb_dct, Cr_dct):
     Cr = fft.idct(fft.idct(Cr_dct, axis=0, norm='ortho'), axis=1, norm='ortho')
     return Y, Cb, Cr
 
-#ortho = normalização
-#axis=0 -> aplicar a dct/idct a cada linha
-#axis=1 -> aplicar a dct/idct a cada coluna
-#chama a função dct duas vezes para aplicar a dct a cada linha e coluna
+
 
 #7.2
 
@@ -148,7 +150,7 @@ def get_scale(qf):
         return 50/qf
 
 
-#dividir Y, Cb e Cr por matriz de quantização (de 8 em 8)
+#dividir Y, C e Cr por matriz de quantização (de 8 em 8)
 def quantization(Y_dct, Cb_dct, Cr_dct, qf, Q_Y, Q_CbCr):
     Y_q = np.zeros_like(Y_dct)
     Cb_q = np.zeros_like(Cb_dct)
@@ -262,7 +264,7 @@ def encoder(img):
         showImg(R, cmap= cm_user, caption= "Imagem original com colormap do user")
         plt.show(block= False)
 
-    #Padding caso dimensão não seja multiplo de 32x32 (copia a ultima linha/coluna para preencher o espaço em falta)
+    #padding caso dimensão não seja multiplo de 32x32 (copia a ultima linha/coluna para preencher o espaço em falta)
     #4.1
     nl, nc= R.shape #n linhas e colunas
     nl_pad= 32-(nl%32)
@@ -309,9 +311,9 @@ def encoder(img):
     BS= int(input("Introduza o valor de BS para os blocos (8, 64): "))
     Y_dct8, Cb_dct8, Cr_dct8 = dctBlocks(Y_d, Cb_d, Cr_d, BS)
     if(input("Mostrar imagens YCbCr DCT {}x{}? (s/n): ".format(BS, BS)) in "sS"):
-        showImg(np.log(abs(Y_dct8) + 0.0001), cmap= cm_grey, caption= "Y DCT 8x8")
-        showImg(np.log(abs(Cb_dct8) + 0.0001), cmap= cm_grey, caption= "Cb DCT 8x8")
-        showImg(np.log(abs(Cr_dct8) + 0.0001), cmap= cm_grey, caption= "Cr DCT 8x8")
+        showImg(np.log(abs(Y_dct8) + 0.0001), cmap= cm_grey, caption= "Y DCT {}x{}".format(BS, BS))
+        showImg(np.log(abs(Cb_dct8) + 0.0001), cmap= cm_grey, caption= "Cb DCT {}x{}".format(BS, BS))
+        showImg(np.log(abs(Cr_dct8) + 0.0001), cmap= cm_grey, caption= "Cr DCT {}x{}".format(BS, BS))
         plt.show(block= False)
 
     #Matriz de quantização (valores do slide 32 M2.1)
@@ -335,9 +337,9 @@ def encoder(img):
     qf= int(input("Introduza o valor de QF para a quantização (1-100): "))
     Y_q, Cb_q, Cr_q = quantization(Y_dct8, Cb_dct8, Cr_dct8, qf, Q_Y, Q_CbCr)
     if(input("Mostrar imagens YCbCr quantizadas? (s/n): ") in "sS"):
-        showImg(np.log(abs(Y_q) + 0.0001), cmap= cm_grey, caption= "Y quantizada")
-        showImg(np.log(abs(Cb_q) + 0.0001), cmap= cm_grey, caption= "Cb quantizada")
-        showImg(np.log(abs(Cr_q) + 0.0001), cmap= cm_grey, caption= "Cr quantizada")
+        showImg(np.log(abs(Y_q) + 0.0001), cmap= cm_grey, caption= "Y quantizada" + " QF: " + str(qf))
+        showImg(np.log(abs(Cb_q) + 0.0001), cmap= cm_grey, caption= "Cb quantizada" + " QF: " + str(qf))
+        showImg(np.log(abs(Cr_q) + 0.0001), cmap= cm_grey, caption= "Cr quantizada" + " QF: " + str(qf))
         plt.show(block = False)
 
     #9.3
