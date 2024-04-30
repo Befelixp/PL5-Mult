@@ -4,6 +4,7 @@ Created on Tue Apr  6 13:03:06 2021
 @author: rpp
 """
 
+from scipy.fft import rfft
 import librosa #https://librosa.org/    #sudo apt-get install -y ffmpeg (open mp3 files)
 import librosa.display
 import librosa.beat
@@ -11,7 +12,8 @@ import sounddevice as sd  #https://anaconda.org/conda-forge/python-sounddevice
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import skew, kurtosis
+from scipy.spatial import distance, cityblock
+from scipy.stats import skew, kurtosis,pearsonr
 import os
 
 
@@ -84,7 +86,31 @@ def normalize_features(features):
     normalized_features = np.vstack((min_val, normalized_features))
     return normalized_features
 
+def calculate_sc(signal):
+    spectrum = np.abs(rfft(signal))
+    normalized_spectrum = spectrum / np.sum(spectrum)
+    normalized_freqs = np.linspace(0, 1, len(normalized_spectrum))
+    sc= np.sum(normalized_freqs * normalized_spectrum)
+    return sc
 
+def calculate_sc_librosa(y, sr):
+    cent = librosa.feature.spectral_centroid(y=y, sr=sr)
+    return cent
+
+def pearson_correlation(x, y):
+    return pearsonr(x, y)[0]
+
+def rmse(x, y):
+    return np.sqrt(np.mean((x - y) ** 2))
+
+def euclidean_similarity(x, y):
+    return 1 - distance.euclidean(x, y)
+
+def cosine_similarity(x, y):
+    return 1 - distance.cosine(x, y)
+
+def manhattan_similarity(x,y):
+    return 1 - cityblock(x, y)
 
 if __name__ == "__main__":
     all_features = []
@@ -99,7 +125,7 @@ if __name__ == "__main__":
     #2.1.4.
     np.savetxt('./resultadosObtidos/features.csv', features, delimiter = ',')
     # np.savetxt('./resultadosObtidos/features_norm.csv', normalized_features, delimiter = ',')
-
+    #np.savetxt('./resultadosObtidos/.csv', all_features, delimiter = ',')
     
 
 
