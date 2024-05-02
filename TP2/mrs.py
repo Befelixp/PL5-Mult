@@ -13,6 +13,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import fft
+from scipy.spatial import distance
 from scipy.stats import skew, kurtosis
 import os
 
@@ -112,6 +113,15 @@ def normalize_features(features):
     normalized_features[1] = min_max[1]
     return normalized_features
 
+def normalize_query(query, min_max):
+    normalized_query = np.zeros(190)
+    for i in range(190):
+        if min_max[1][i] == min_max[0][i]:
+            normalized_query[i] = 0
+        else:
+            normalized_query[i] = (query[i] - min_max[0][i]) / (min_max[1][i] - min_max[0][i])
+    return normalized_query
+
 def calculate_sc(signal):
     spectrum = np.abs(rfft(signal))
     normalized_spectrum = spectrum / np.sum(spectrum)
@@ -122,9 +132,9 @@ def calculate_sc(signal):
 def features():
     all_feats = np.zeros((900, 190))
     count = 0
-    for file_name in os.listdir("./Queries"):
-        if os.path.isfile(os.path.join("./Queries", file_name)):
-            file_path = os.path.join("./Queries", file_name)
+    for file_name in os.listdir("./music"):
+        if os.path.isfile(os.path.join("./music", file_name)):
+            file_path = os.path.join("./music", file_name)
             # 2.1.1
             features = calculateFeatures(file_path)
             # print(features)
@@ -137,7 +147,37 @@ def features():
     # 2.1.4
     np.savetxt('./resultadosObtidos/features.csv', all_feats, delimiter=',', fmt="%.6f")
     np.savetxt('./resultadosObtidos/features_norm.csv', norm_feats, delimiter=',', fmt="%.6f")
+
+    return all_feats, norm_feats
     
+#3.1
+def distances(norm_feats):
+    euclidean = np.zeros(900)
+    manhattan = np.zeros(900)
+    cos = np.zeros(900)
+    # calculate features from query
+    for file_name in os.listdir("./Queries"):
+        if os.path.isfile(os.path.join("./Queries", file_name)):
+            file_path = os.path.join("./Queries", file_name)
+            query_features = calculateFeatures(file_path)
+            # normalize query features
+            query_features = normalize_query(query_features, norm_feats[:2])
+            # calculate distances
+            for i in range(900):
+                euclidean[i] = distance.euclidean(norm_feats[i+2], query_features)
+                manhattan[i] = distance.cityblock(norm_feats[i+2], query_features)
+                cos[i] = distance.cosine(norm_feats[i+2], query_features)
+            # save distances
+            np.savetxt('./resultadosObtidos/euclidean.csv', euclidean, delimiter=',', fmt="%.6f")
+            np.savetxt('./resultadosObtidos/manhattan.csv', manhattan, delimiter=',', fmt="%.6f")
+            np.savetxt('./resultadosObtidos/cosine.csv', cos, delimiter=',', fmt="%.6f")
+
+            #get 10 best results, save the indexes
+            euclidean_best = np.argsort(euclidean)[:10]
+            manhattan_best = np.argsort(manhattan)[:10]
+            cos_best = np.argsort(cos)[:10]
+            return euclidean_best, manhattan_best, cos_best
+
 
 #2.2.1
 #spectral centroid calculated manually
@@ -154,9 +194,9 @@ def spectralCentroid(y, sr):
 def manualCentroid():
     error = np.zeros((900, 2))
     count = 0
-    for file_name in os.listdir("./Queries"):
-        if os.path.isfile(os.path.join("./Queries", file_name)):
-            file_path = os.path.join("./Queries", file_name)   
+    for file_name in os.listdir("./music"):
+        if os.path.isfile(os.path.join("./music", file_name)):
+            file_path = os.path.join("./music", file_name)   
             warnings.filterwarnings("ignore")
             sr = 22050
             y, fs = librosa.load(file_path, sr=sr, mono = True)
@@ -185,15 +225,49 @@ def manualCentroid():
             count += 1
     np.savetxt('./resultadosObtidos/spectroid.csv', error, delimiter=',', fmt="%.6f")
 
+#4.1.1
+def rankingMetadata():
+    queryMetadata = open('./query_metadata.csv', 'r').readlines()[1:]
+    querySplit = queryMetadata[0].split(',')
+    allMetadata = open('./panda_dataset_taffc_metadata.csv', 'r').readlines()[1:]
+    allMetadataSplit = []
+    for line in allMetadata:
+       allMetadataSplit.append(line.split(','))
+    # print(allMetadata)
+    rankings = np.zeros(900)
+    for i in range(900):
+        #artist
+        rankings[i] += (querySplit[1] == allMetadataSplit[i][1])
+        #genre
+        genres = querySplit[11].strip().split(';')
+        for g in genres:
+            rankings[i] += (g in allMetadataSplit[i][11].strip().split(';'))
+        #mood
+        moods = querySplit[9].strip().split(';')
+        for m in moods:
+            rankings[i] += (m in allMetadataSplit[i][9].strip().split(';'))
+        
+    indexes = np.flip(np.argsort(rankings))[:10]
+    print(indexes)
+
+    
+
 
 def featuresRead():
     all_feats = np.loadtxt('./resultadosObtidos/features.csv', delimiter=',')
-    return all_feats
+    norm_feats = np.loadtxt('./resultadosObtidos/features_norm.csv', delimiter=',')
+    return all_feats, norm_feats
 
 if __name__ == "__main__":
     # ft = features()
     # features()
-    manualCentroid()
+    # all_feats, norm_feats = featuresRead()
+    # manualCentroid()
+    # euclidean_best, manhattan_best, cos_best = distances(norm_feats)
+    # print(euclidean_best)
+    # print(manhattan_best)
+    # print(cos_best)
+    rankingMetadata()
 
     # plt.show()
     
