@@ -17,6 +17,8 @@ from scipy.spatial import distance
 from scipy.stats import skew, kurtosis
 import os
 
+music_num = 900
+
 
 # 2.1.1
 def calculateSpectralFeatures(y, fs):
@@ -101,7 +103,7 @@ def calculate_stats(features):
 # 2.1.3
 def normalize_features(features):
     min_max = np.zeros((2, 190))
-    normalized_features = np.zeros((902, 190))
+    normalized_features = np.zeros((music_num+2, 190))
     for i in range(190):
         min_max[0][i] = np.min(features[:, i])
         min_max[1][i] = np.max(features[:, i])
@@ -130,7 +132,7 @@ def calculate_sc(signal):
     return sc
 
 def features():
-    all_feats = np.zeros((900, 190))
+    all_feats = np.zeros((music_num, 190))
     count = 0
     for file_name in os.listdir("./music"):
         if os.path.isfile(os.path.join("./music", file_name)):
@@ -152,9 +154,9 @@ def features():
     
 #3.1
 def distances(norm_feats):
-    euclidean = np.zeros(900)
-    manhattan = np.zeros(900)
-    cos = np.zeros(900)
+    euclidean = np.zeros(music_num)
+    manhattan = np.zeros(music_num)
+    cos = np.zeros(music_num)
     # calculate features from query
     for file_name in os.listdir("./Queries"):
         if os.path.isfile(os.path.join("./Queries", file_name)):
@@ -163,7 +165,7 @@ def distances(norm_feats):
             # normalize query features
             query_features = normalize_query(query_features, norm_feats[:2])
             # calculate distances
-            for i in range(900):
+            for i in range(music_num):
                 euclidean[i] = distance.euclidean(norm_feats[i+2], query_features)
                 manhattan[i] = distance.cityblock(norm_feats[i+2], query_features)
                 cos[i] = distance.cosine(norm_feats[i+2], query_features)
@@ -173,10 +175,28 @@ def distances(norm_feats):
             np.savetxt('./resultadosObtidos/cosine.csv', cos, delimiter=',', fmt="%.6f")
 
             #get 10 best results, save the indexes
-            euclidean_best = np.argsort(euclidean)[:10]
-            manhattan_best = np.argsort(manhattan)[:10]
-            cos_best = np.argsort(cos)[:10]
-            return euclidean_best, manhattan_best, cos_best
+            euclidean_best = np.argsort(euclidean)[:11]
+            manhattan_best = np.argsort(manhattan)[:11]
+            cos_best = np.argsort(cos)[:11]
+
+
+            #get the names of the musics
+            euclidean_names = []
+            manhattan_names = []
+            cos_names = []
+            for i in euclidean_best:
+                euclidean_names.append(os.listdir("./music")[i][:-4])
+            for i in manhattan_best:
+                manhattan_names.append(os.listdir("./music")[i][:-4])
+            for i in cos_best:
+                cos_names.append(os.listdir("./music")[i][:-4])
+
+            #change indexes to distances
+            euclidean_best = euclidean[euclidean_best]
+            manhattan_best = manhattan[manhattan_best]
+            cos_best = cos[cos_best]
+
+            return euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best
 
 
 #2.2.1
@@ -192,7 +212,7 @@ def spectralCentroid(y, sr):
     return sc
 
 def manualCentroid():
-    error = np.zeros((900, 2))
+    error = np.zeros((music_num, 2))
     count = 0
     for file_name in os.listdir("./music"):
         if os.path.isfile(os.path.join("./music", file_name)):
@@ -234,8 +254,8 @@ def rankingMetadata():
     for line in allMetadata:
        allMetadataSplit.append(line.split(','))
     # print(allMetadata)
-    rankings = np.zeros(900)
-    for i in range(900):
+    rankings = np.zeros(music_num)
+    for i in range(music_num):
         #artist
         rankings[i] += (querySplit[1] == allMetadataSplit[i][1])
         #genre
@@ -247,27 +267,61 @@ def rankingMetadata():
         for m in moods:
             rankings[i] += (m in allMetadataSplit[i][9].strip().split(';'))
         
-    indexes = np.flip(np.argsort(rankings))[:10]
-    print(indexes)
+    indexes = np.flip(np.argsort(rankings))[:11]
+    names = []
+    for i in indexes:
+        names.append(allMetadataSplit[i][0].strip("\""))
+    score = rankings[indexes]
+    return names, score
 
+#4.1.2
+def precision(ranking, distance):
+    count = 0
+    for i in range(10):
+        if ranking[i+1] in distance:
+            count += 1
+    return count / 10 * 100
+
+#4.1.3
+def printRanking(euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best, ranking_names, ranking_scores):
+    rankingStr = "Ranking Metadata\n\n"
+    rankingStr += "Euclidean: -------\n"
+    rankingStr += "[" + ", ".join(str(name) for name in euclidean_names) + "]\n"
+    rankingStr += "[" +", ".join(str(score) for score in euclidean_best) + "]\n\n"
+    rankingStr += "Manhattan: -------\n"
+    rankingStr += "[" + ", ".join(str(name) for name in manhattan_names) + "]\n"
+    rankingStr += "[" + ", ".join(str(score) for score in manhattan_best) + "]\n\n"
+    rankingStr += "Cosine: -------\n"
+    rankingStr += "[" + ", ".join(str(name) for name in cos_names) + "]\n"
+    rankingStr += "[" + ", ".join(str(score) for score in cos_best) + "]\n\n"
+    rankingStr += "Metadata: -------\n"
+    rankingStr += "[" + ", ".join(str(name) for name in ranking_names) + "]\n"
+    rankingStr += "[" + ", ".join(str(score) for score in ranking_scores) + "]\n\n"
+    rankingStr += "Precision: -------\n"
+    rankingStr += "Euclidean: " + str(precision(ranking_names, euclidean_names)) + "\n"
+    rankingStr += "Manhattan: " + str(precision(ranking_names, manhattan_names)) + "\n"
+    rankingStr += "Cosine: " + str(precision(ranking_names, cos_names)) + "\n"
     
+    file = open('./resultadosObtidos/ranking.txt', 'w')
+    file.write(rankingStr)
 
 
 def featuresRead():
     all_feats = np.loadtxt('./resultadosObtidos/features.csv', delimiter=',')
     norm_feats = np.loadtxt('./resultadosObtidos/features_norm.csv', delimiter=',')
+    music_num = all_feats.shape[0]
     return all_feats, norm_feats
 
 if __name__ == "__main__":
     # ft = features()
     # features()
-    # all_feats, norm_feats = featuresRead()
+    all_feats, norm_feats = featuresRead()
     # manualCentroid()
-    # euclidean_best, manhattan_best, cos_best = distances(norm_feats)
-    # print(euclidean_best)
-    # print(manhattan_best)
-    # print(cos_best)
-    rankingMetadata()
+    euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best = distances(norm_feats)
+    ranking_names, ranking_scores = rankingMetadata()
+    printRanking(euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best, ranking_names, ranking_scores)
+
+
 
     # plt.show()
     
