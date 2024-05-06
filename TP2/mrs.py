@@ -258,16 +258,16 @@ def rankingMetadata():
     for i in range(music_num):
         #artist
         rankings[i] += (querySplit[1] == allMetadataSplit[i][1])
-        #genre
-        genres = querySplit[11].strip().split(';')
-        for g in genres:
-            rankings[i] += (g in allMetadataSplit[i][11].strip().split(';'))
         #mood
-        moods = querySplit[9].strip().split(';')
+        moods = querySplit[9].replace("\"","").replace(";","").split(" ")
         for m in moods:
-            rankings[i] += (m in allMetadataSplit[i][9].strip().split(';'))
+            rankings[i] += (m in allMetadataSplit[i][9].replace("\"","").replace(";","").split(" "))
+        #genre
+        genres = querySplit[11].replace("\"","").replace(";","").split(" ")
+        for g in genres:
+            rankings[i] += (g in allMetadataSplit[i][11].replace("\"","").replace(";","").split(" "))
         
-    indexes = np.flip(np.argsort(rankings))[:11]
+    indexes = np.argsort(rankings)[::-1][:11]
     names = []
     for i in indexes:
         names.append(allMetadataSplit[i][0].strip("\""))
