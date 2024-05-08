@@ -312,17 +312,58 @@ def featuresRead():
     music_num = all_feats.shape[0]
     return all_feats, norm_feats
 
+def subjectEval(name, distance, music_names):
+    eval = np.zeros(10)
+    print("------" + distance + " ranking evaluation------")
+    print("Listening to query...")
+    y, fs = librosa.load('./Queries/' + music_names[0] + '.mp3')
+    sd.play(y, fs)
+    sd.wait()
+    for i in range(1, 11):
+        print("Listening to music " + str(i) + " - \"" + music_names[i] + ".mp3\" ...")
+        y, fs = librosa.load('./music/' + music_names[i] + '.mp3')
+        sd.play(y, fs)
+        answer = input("Rate the music from 1 to 5: ")
+        eval[i-1] = int(answer)
+        sd.stop()
+    np.savetxt('./resultadosObtidos/evaluations/' + name + '_' + distance + '.csv', eval, delimiter=',', fmt="%d")
+
+def menu():
+    print("1. Extract Features")
+    print("2. Calculate Spectral Centroid")
+    print("3. Ranking")
+    print("4. Subjective Evaluation")
+    print("0. Exit")
+    return int(input("Choose an option: "))
+
 if __name__ == "__main__":
-    # ft = features()
     # features()
-    all_feats, norm_feats = featuresRead()
+    # all_feats, norm_feats = featuresRead()
     # manualCentroid()
-    euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best = distances(norm_feats)
-    ranking_names, ranking_scores = rankingMetadata()
-    printRanking(euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best, ranking_names, ranking_scores)
+    # euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best = distances(norm_feats)
+    # ranking_names, ranking_scores = rankingMetadata()
+    # printRanking(euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best, ranking_names, ranking_scores)
+    while (option := menu()) != 0:
+        if option == 1:
+            features()
+        elif option == 2:
+            spectralCentroid()
+        elif option == 3:
+            all_feats, norm_feats = featuresRead()
+            euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best = distances(norm_feats)
+            ranking_names, ranking_scores = rankingMetadata()
+            printRanking(euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best, ranking_names, ranking_scores)
+        elif option == 4:
+            all_feats, norm_feats = featuresRead()
+            euclidean_names, euclidean_best, manhattan_names, manhattan_best, cos_names, cos_best = distances(norm_feats)
+            ranking_names, ranking_scores = rankingMetadata()
+            name = input("Insert the name of the subject: ")
+            subjectEval(name, "Euclidean", euclidean_names)
+            subjectEval(name, "Manhattan", manhattan_names)
+            subjectEval(name, "Cosine", cos_names)
+            subjectEval(name, "Metadata", ranking_names)
+        else:
+            print("\n!!!Invalid option!!!\n")
 
-
-
-    # plt.show()
     
     
